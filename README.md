@@ -79,7 +79,7 @@ flowchart TB
 - Node.js environment
 - API keys for:
   - Firecrawl API (for web search and content extraction)
-  - OpenAI API (for o3 mini model)
+  - Google Gemini API
 
 ## Setup
 
@@ -99,12 +99,12 @@ FIRECRAWL_KEY="your_firecrawl_key"
 # If you want to use your self-hosted Firecrawl, add the following below:
 # FIRECRAWL_BASE_URL="http://localhost:3002"
 
-OPENAI_KEY="your_openai_key"
+GEMINI_API_KEY="your_gemini_api_key"
 ```
 
-To use local LLM, comment out `OPENAI_KEY` and instead uncomment `OPENAI_ENDPOINT` and `OPENAI_MODEL`:
-- Set `OPENAI_ENDPOINT` to the address of your local server (eg."http://localhost:1234/v1")
-- Set `OPENAI_MODEL` to the name of the model loaded in your local server.
+To use local LLM, comment out `GEMINI_API_KEY` and instead set:
+- `GEMINI_ENDPOINT` to the address of your local server (eg."http://localhost:1234/v1")
+- `GEMINI_MODEL` to the name of the model loaded in your local server.
 
 ### Docker
 
@@ -149,11 +149,14 @@ If you have a free version, you may sometime run into rate limit errors, you can
 
 ### Custom endpoints and models
 
-There are 2 other optional env vars that lets you tweak the endpoint (for other OpenAI compatible APIs like OpenRouter or Gemini) as well as the model string.
+There are optional env vars that let you customize the Gemini configuration:
 
 ```bash
-OPENAI_ENDPOINT="custom_endpoint"
-OPENAI_MODEL="custom_model"
+GEMINI_MODEL="gemini-2.0-flash"
+GEMINI_TEMPERATURE="0.5"
+GEMINI_TOP_P="0.95"
+GEMINI_TOP_K="40"
+GEMINI_MAX_OUTPUT_TOKENS="8192"
 ```
 
 ## How It Works
