@@ -104,10 +104,6 @@ FIRECRAWL_KEY="your_firecrawl_key"
 GEMINI_API_KEY="your_gemini_api_key"
 ```
 
-To use local LLM, comment out `GEMINI_API_KEY` and instead set:
-- `GEMINI_ENDPOINT` to the address of your local server (eg."http://localhost:1234/v1")
-- `GEMINI_MODEL` to the name of the model loaded in your local server.
-
 ### Docker
 
 1. Clone the repository
