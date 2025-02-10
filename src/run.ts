@@ -1,20 +1,29 @@
 import * as fs from 'fs/promises';
 import * as readline from 'readline';
 
-import { deepResearch, writeFinalReport } from './deep-research';
+import { deepResearch, generateReport } from './deep-research';
 import { generateFeedback } from './feedback';
+import { tokenTracker } from './ai/tokenTracker';
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-// Helper function to get user input
-function askQuestion(query: string): Promise<string> {
+// Helper function to get user input with validation
+async function askQuestion(query: string, validator?: (input: string) => boolean): Promise<string> {
   return new Promise(resolve => {
-    rl.question(query, answer => {
-      resolve(answer);
-    });
+    const ask = () => {
+      rl.question(query, answer => {
+        if (!validator || validator(answer)) {
+          resolve(answer);
+        } else {
+          console.log('❌ Invalid input, please try again');
+          ask();
+        }
+      });
+    };
+    ask();
   });
 }
 
@@ -24,13 +33,13 @@ async function run() {
   const initialQuery = await askQuestion('What would you like to research? ');
 
   // Get breath and depth parameters
-  const breadth =
-    parseInt(
-      await askQuestion(
-        'Enter research breadth (recommended 2-10, default 4): ',
-      ),
-      10,
-    ) || 4;
+  const breadth = parseInt(
+    await askQuestion(
+      'Enter research breadth (2-10) [default: 4]: ',
+      input => !input || (parseInt(input) >= 2 && parseInt(input) <= 10)
+    ),
+    10,
+  ) || 4;
   const depth =
     parseInt(
       await askQuestion('Enter research depth (recommended 1-5, default 2): '),
@@ -40,7 +49,7 @@ async function run() {
   console.log(`Creating research plan...`);
 
   // Generate follow-up questions
-  const followUpQuestions = await generateFeedback({
+  const feedback = await generateFeedback({
     query: initialQuery,
   });
 
@@ -50,7 +59,7 @@ async function run() {
 
   // Collect answers to follow-up questions
   const answers: string[] = [];
-  for (const question of followUpQuestions) {
+  for (const question of feedback.questions) {
     const answer = await askQuestion(`\n${question}\nYour answer: `);
     answers.push(answer);
   }
@@ -59,10 +68,14 @@ async function run() {
   const combinedQuery = `
 Initial Query: ${initialQuery}
 Follow-up Questions and Answers:
-${followUpQuestions.map((q, i) => `Q: ${q}\nA: ${answers[i]}`).join('\n')}
+${feedback.questions.map((q: string, i: number) => `Q: ${q}\nA: ${answers[i]}`).join('\n')}
 `;
 
   console.log('\nResearching your topic...');
+  
+  // Log initial state
+  console.log('\n💰 Initial token usage:');
+  tokenTracker.logTotal();
 
   const { learnings, visitedUrls } = await deepResearch({
     query: combinedQuery,
@@ -70,23 +83,32 @@ ${followUpQuestions.map((q, i) => `Q: ${q}\nA: ${answers[i]}`).join('\n')}
     depth,
   });
 
+  // Log usage after research phase
+  console.log('\n💰 Token usage after research:');
+  tokenTracker.logTotal();
+
   console.log(`\n\nLearnings:\n\n${learnings.join('\n')}`);
   console.log(
     `\n\nVisited URLs (${visitedUrls.length}):\n\n${visitedUrls.join('\n')}`,
   );
   console.log('Writing final report...');
 
-  const report = await writeFinalReport({
+  const report = await generateReport({
     prompt: combinedQuery,
     learnings,
     visitedUrls,
   });
+
+  // Final token usage report
+  console.log('\n💰 Final token usage and costs:');
+  tokenTracker.logTotal();
 
   // Save report to file
   await fs.writeFile('output.md', report, 'utf-8');
 
   console.log(`\n\nFinal Report:\n\n${report}`);
   console.log('\nReport has been saved to output.md');
+  
   rl.close();
 }
 
