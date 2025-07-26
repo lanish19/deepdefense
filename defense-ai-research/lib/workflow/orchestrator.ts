@@ -1,6 +1,7 @@
 import { UserInput, StartupFirm } from '../../types/agents';
 import { WorkflowStateManager } from './state-manager';
 import { parseStartupFirmsFile } from '../utils/file-parser';
+import { saveWorkflowState } from '../utils/workflow-store';
 
 // Import preparatory agents
 import { PrePolicyAgent } from '../agents/preparatory/pre-policy';
@@ -23,9 +24,16 @@ import { HTMLGeneratorAgent } from '../agents/output/html-generator';
 export class ResearchWorkflowOrchestrator {
   private stateManager: WorkflowStateManager;
   private startupFirms: StartupFirm[] = [];
+  private workflowId: string;
 
-  constructor(userInput: UserInput) {
+  constructor(workflowId: string, userInput: UserInput) {
+    this.workflowId = workflowId;
     this.stateManager = new WorkflowStateManager({ userInput });
+    // Persist state on every update
+    this.stateManager.subscribeToAll(() => {
+      saveWorkflowState(this.workflowId, this.stateManager.getState());
+    });
+    saveWorkflowState(this.workflowId, this.stateManager.getState());
   }
 
   async execute(): Promise<string> {
