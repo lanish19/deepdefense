@@ -36,16 +36,16 @@ export class ResearchWorkflowOrchestrator {
       // Step 1: Parse startup firms file if provided
       await this.parseStartupFirmsFile();
 
-      // Step 2: Run preparatory agents with error handling
+      // Step 2: Run preparatory agents in parallel
       await this.runPreparatoryAgents();
 
-      // Step 3: Run research agents with error handling
+      // Step 3: Run research agents with preparatory data
       await this.runResearchAgents();
 
-      // Step 4: Run synthesis agent with error handling
+      // Step 4: Run synthesis agent
       await this.runSynthesisAgent();
 
-      // Step 5: Generate HTML report with error handling
+      // Step 5: Generate HTML report
       const finalHTML = await this.generateHTMLReport();
 
       console.log('✅ Workflow completed successfully');
@@ -114,46 +114,43 @@ export class ResearchWorkflowOrchestrator {
       });
     });
 
-    // Run agents with individual error handling (not Promise.all)
-    const results = [];
-    for (const { id, name, agent } of agents) {
-      this.stateManager.updateAgentProgress(id, {
-        status: 'running',
-        progress: 25,
-        message: `Running ${name} Agent`
-      });
-
-      try {
-        const result = await agent.execute();
-        
+    // Run agents in parallel
+    const results = await Promise.all(
+      agents.map(async ({ id, name, agent }) => {
         this.stateManager.updateAgentProgress(id, {
-          status: 'completed',
-          progress: 100,
-          message: `${name} Agent completed`
+          status: 'running',
+          progress: 25,
+          message: `Running ${name} Agent`
         });
 
-        results.push({ id, result });
-      } catch (error) {
-        console.error(`❌ ${name} Agent failed:`, error);
-        this.stateManager.updateAgentProgress(id, {
-          status: 'error',
-          progress: 0,
-          message: `${name} Agent failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-        });
-        // Continue with other agents instead of failing completely
-        results.push({ id, result: null });
-      }
-    }
+        try {
+          const result = await agent.execute();
+          
+          this.stateManager.updateAgentProgress(id, {
+            status: 'completed',
+            progress: 100,
+            message: `${name} Agent completed`
+          });
 
-    // Store results (only successful ones)
+          return { id, result };
+        } catch (error) {
+          this.stateManager.updateAgentProgress(id, {
+            status: 'error',
+            progress: 0,
+            message: `${name} Agent failed`
+          });
+          throw error;
+        }
+      })
+    );
+
+    // Store results
     results.forEach(({ id, result }) => {
-      if (result !== null) {
-        const agentType = id.replace('pre-', '');
-        this.stateManager.setPreparatoryResult(agentType, result);
-      }
+      const agentType = id.replace('pre-', '');
+      this.stateManager.setPreparatoryResult(agentType, result);
     });
 
-    console.log('✅ Preparatory agents completed (with error handling)');
+    console.log('✅ All preparatory agents completed');
   }
 
   private async runResearchAgents(): Promise<void> {
@@ -163,62 +160,34 @@ export class ResearchWorkflowOrchestrator {
     const { domainFocus, contextDetails } = state.userInput;
     const { preparatoryResults } = state;
 
-    // Check which preparatory results are available
-    const availablePreparatoryResults = {
-      prePolicy: preparatoryResults.prePolicy,
-      prePrimes: preparatoryResults.prePrimes,
-      preStartupVC: preparatoryResults.preStartupVC,
-      preStartupFirms: preparatoryResults.preStartupFirms,
-      preAcademia: preparatoryResults.preAcademia
-    };
-
-    // Initialize research agents only for available preparatory results
-    const agents = [];
-    
-    if (availablePreparatoryResults.prePolicy) {
-      agents.push({
-        id: 'policy-research',
-        name: 'Policy Research',
-        agent: new PolicyResearchAgent(domainFocus, availablePreparatoryResults.prePolicy, contextDetails)
-      });
-    }
-    
-    if (availablePreparatoryResults.prePrimes) {
-      agents.push({
-        id: 'primes-research',
-        name: 'Primes Research',
-        agent: new PrimesResearchAgent(domainFocus, availablePreparatoryResults.prePrimes, contextDetails)
-      });
-    }
-    
-    if (availablePreparatoryResults.preStartupVC) {
-      agents.push({
-        id: 'startup-vc-research',
-        name: 'Startup/VC Research',
-        agent: new StartupVCResearchAgent(domainFocus, availablePreparatoryResults.preStartupVC, contextDetails)
-      });
-    }
-    
-    if (availablePreparatoryResults.preStartupFirms) {
-      agents.push({
-        id: 'startup-firms-research',
-        name: 'Startup Firms Research',
-        agent: new StartupFirmsResearchAgent(domainFocus, availablePreparatoryResults.preStartupFirms, this.startupFirms, contextDetails)
-      });
-    }
-    
-    if (availablePreparatoryResults.preAcademia) {
-      agents.push({
-        id: 'academic-research',
-        name: 'Academic Research',
-        agent: new AcademicResearchAgent(domainFocus, availablePreparatoryResults.preAcademia, contextDetails)
-      });
-    }
-
-    if (agents.length === 0) {
-      console.log('⚠️ No preparatory results available, skipping research agents');
-      return;
-    }
+    // Initialize research agents
+    const agents = [
+      { 
+        id: 'policy-research', 
+        name: 'Policy Research', 
+        agent: new PolicyResearchAgent(domainFocus, preparatoryResults.prePolicy!, contextDetails) 
+      },
+      { 
+        id: 'primes-research', 
+        name: 'Primes Research', 
+        agent: new PrimesResearchAgent(domainFocus, preparatoryResults.prePrimes!, contextDetails) 
+      },
+      { 
+        id: 'startup-vc-research', 
+        name: 'Startup/VC Research', 
+        agent: new StartupVCResearchAgent(domainFocus, preparatoryResults.preStartupVC!, contextDetails) 
+      },
+      { 
+        id: 'startup-firms-research', 
+        name: 'Startup Firms Research', 
+        agent: new StartupFirmsResearchAgent(domainFocus, preparatoryResults.preStartupFirms!, this.startupFirms, contextDetails) 
+      },
+      { 
+        id: 'academic-research', 
+        name: 'Academic Research', 
+        agent: new AcademicResearchAgent(domainFocus, preparatoryResults.preAcademia!, contextDetails) 
+      }
+    ];
 
     // Set initial progress
     agents.forEach(({ id, name }) => {
@@ -230,7 +199,6 @@ export class ResearchWorkflowOrchestrator {
     });
 
     // Run agents sequentially to avoid rate limits (deep research is intensive)
-    const results = [];
     for (const { id, name, agent } of agents) {
       this.stateManager.updateAgentProgress(id, {
         status: 'running',
@@ -247,28 +215,20 @@ export class ResearchWorkflowOrchestrator {
           message: `${name} Agent completed`
         });
 
-        results.push({ id, result });
+        // Store result
+        const agentType = id.replace('-research', '').replace('-', '');
+        this.stateManager.setResearchResult(agentType, result);
       } catch (error) {
-        console.error(`❌ ${name} Agent failed:`, error);
         this.stateManager.updateAgentProgress(id, {
           status: 'error',
           progress: 0,
-          message: `${name} Agent failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+          message: `${name} Agent failed`
         });
-        // Continue with other agents
-        results.push({ id, result: null });
+        throw error;
       }
     }
 
-    // Store results (only successful ones)
-    results.forEach(({ id, result }) => {
-      if (result !== null) {
-        const agentType = id.replace('-research', '').replace('-', '');
-        this.stateManager.setResearchResult(agentType, result);
-      }
-    });
-
-    console.log('✅ Research agents completed (with error handling)');
+    console.log('✅ All research agents completed');
   }
 
   private async runSynthesisAgent(): Promise<void> {
@@ -284,32 +244,16 @@ export class ResearchWorkflowOrchestrator {
     const { domainFocus, contextDetails } = state.userInput;
     const { researchResults } = state;
 
-    // Check which research results are available
-    const availableResearchResults = {
-      policy: researchResults.policy,
-      primes: researchResults.primes,
-      startupVC: researchResults.startupVC,
-      startupFirms: researchResults.startupFirms,
-      academic: researchResults.academic
-    };
-
-    // Only proceed if we have at least some research results
-    const availableResults = Object.values(availableResearchResults).filter(result => result !== undefined);
-    
-    if (availableResults.length === 0) {
-      console.log('⚠️ No research results available, skipping synthesis');
-      this.stateManager.updateAgentProgress('synthesis', {
-        status: 'error',
-        progress: 0,
-        message: 'No research results available for synthesis'
-      });
-      return;
-    }
-
     try {
       const synthesisAgent = new AnalysisSynthesisAgent(
         domainFocus,
-        availableResearchResults,
+        {
+          policy: researchResults.policy!,
+          primes: researchResults.primes!,
+          startupVC: researchResults.startupVC!,
+          startupFirms: researchResults.startupFirms!,
+          academic: researchResults.academic!
+        },
         contextDetails
       );
 
@@ -324,11 +268,10 @@ export class ResearchWorkflowOrchestrator {
 
       console.log('✅ Synthesis agent completed');
     } catch (error) {
-      console.error('❌ Synthesis agent failed:', error);
       this.stateManager.updateAgentProgress('synthesis', {
         status: 'error',
         progress: 0,
-        message: `Synthesis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: 'Synthesis failed'
       });
       throw error;
     }
@@ -345,34 +288,9 @@ export class ResearchWorkflowOrchestrator {
 
     const state = this.stateManager.getState();
     
-    // Check if we have synthesis result
-    if (!state.synthesisResult) {
-      console.log('⚠️ No synthesis result available, generating minimal report');
-      const minimalHTML = `
-        <html>
-          <head><title>Defense AI Research Report</title></head>
-          <body>
-            <h1>Defense AI Research Report</h1>
-            <p>Domain: ${state.userInput.domainFocus}</p>
-            <p>Status: Workflow completed with partial results</p>
-            <p>Some agents failed during execution. Please check the logs for details.</p>
-          </body>
-        </html>
-      `;
-      
-      this.stateManager.setFinalHTML(minimalHTML);
-      this.stateManager.updateAgentProgress('html-generator', {
-        status: 'completed',
-        progress: 100,
-        message: 'Minimal HTML report generated'
-      });
-      
-      return minimalHTML;
-    }
-    
     try {
       const htmlGenerator = new HTMLGeneratorAgent();
-      const finalHTML = await htmlGenerator.generateReport(state.synthesisResult);
+      const finalHTML = await htmlGenerator.generateReport(state.synthesisResult!);
       
       this.stateManager.setFinalHTML(finalHTML);
       this.stateManager.updateAgentProgress('html-generator', {
@@ -384,11 +302,10 @@ export class ResearchWorkflowOrchestrator {
       console.log('✅ HTML report generated');
       return finalHTML;
     } catch (error) {
-      console.error('❌ HTML generation failed:', error);
       this.stateManager.updateAgentProgress('html-generator', {
         status: 'error',
         progress: 0,
-        message: `HTML generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: 'HTML generation failed'
       });
       throw error;
     }
@@ -397,4 +314,4 @@ export class ResearchWorkflowOrchestrator {
   getStateManager(): WorkflowStateManager {
     return this.stateManager;
   }
-}
+} 

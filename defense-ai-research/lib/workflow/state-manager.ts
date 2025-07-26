@@ -1,4 +1,4 @@
-import { WorkflowState, AgentProgress } from '../../types/agents';
+import { WorkflowState, AgentProgress, PreparatoryAgentOutput, ResearchAgentOutput, StartupFirmsOutput } from '../../types/agents';
 
 export class WorkflowStateManager {
   private state: WorkflowState;
@@ -33,12 +33,48 @@ export class WorkflowStateManager {
     this.notifyListeners(agentId, updatedProgress);
   }
 
-  setPreparatoryResult(agentType: string, result: any) {
-    (this.state.preparatoryResults as any)[agentType] = result;
+  setPreparatoryResult(agentType: string, result: PreparatoryAgentOutput) {
+    switch (agentType) {
+      case 'policy':
+        this.state.preparatoryResults.prePolicy = result;
+        break;
+      case 'primes':
+        this.state.preparatoryResults.prePrimes = result;
+        break;
+      case 'startupVC':
+        this.state.preparatoryResults.preStartupVC = result;
+        break;
+      case 'startupFirms':
+        this.state.preparatoryResults.preStartupFirms = result;
+        break;
+      case 'academia':
+        this.state.preparatoryResults.preAcademia = result;
+        break;
+      default:
+        console.warn(`Unknown preparatory agent type: ${agentType}`);
+    }
   }
 
-  setResearchResult(agentType: string, result: any) {
-    (this.state.researchResults as any)[agentType] = result;
+  setResearchResult(agentType: string, result: ResearchAgentOutput | StartupFirmsOutput) {
+    switch (agentType) {
+      case 'policy':
+        this.state.researchResults.policy = result as ResearchAgentOutput;
+        break;
+      case 'primes':
+        this.state.researchResults.primes = result as ResearchAgentOutput;
+        break;
+      case 'startupVC':
+        this.state.researchResults.startupVC = result as ResearchAgentOutput;
+        break;
+      case 'startupFirms':
+        this.state.researchResults.startupFirms = result as StartupFirmsOutput;
+        break;
+      case 'academic':
+        this.state.researchResults.academic = result as ResearchAgentOutput;
+        break;
+      default:
+        console.warn(`Unknown research agent type: ${agentType}`);
+    }
   }
 
   setSynthesisResult(result: any) {
@@ -89,4 +125,4 @@ export class WorkflowStateManager {
   getAllProgress(): AgentProgress[] {
     return [...this.state.progress];
   }
-} 
+}
