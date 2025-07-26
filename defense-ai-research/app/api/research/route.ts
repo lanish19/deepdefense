@@ -2,12 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResearchWorkflowOrchestrator } from '../../../lib/workflow/orchestrator';
 import { UserInput } from '../../../types/agents';
 
-// Store active workflows
+// Store active workflows with better persistence
 const activeWorkflows = new Map<string, ResearchWorkflowOrchestrator>();
+const workflowMetadata = new Map<string, {
+  startTime: number;
+  lastAccessed: number;
+  domainFocus: string;
+}>();
+
+// Clean up old workflows periodically
+const CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
+
+function cleanupOldWorkflows() {
+  const cutoffTime = Date.now() - CLEANUP_INTERVAL;
+  for (const [id, metadata] of workflowMetadata.entries()) {
+    if (metadata.lastAccessed < cutoffTime) {
+      activeWorkflows.delete(id);
+      workflowMetadata.delete(id);
+      console.log(`🗑️ Cleaned up old workflow ${id}`);
+    }
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
     console.log('📥 Received research request');
+
+    // Clean up old workflows
+    cleanupOldWorkflows();
 
     // Parse multipart form data
     const formData = await request.formData();
@@ -43,25 +65,32 @@ export async function POST(request: NextRequest) {
     const orchestrator = new ResearchWorkflowOrchestrator(userInput);
     activeWorkflows.set(workflowId, orchestrator);
     
+    // Store metadata for cleanup
+    workflowMetadata.set(workflowId, {
+      startTime: Date.now(),
+      lastAccessed: Date.now(),
+      domainFocus
+    });
+    
     console.log(`📊 Active workflows count: ${activeWorkflows.size}`);
 
     // Start workflow execution in background
     orchestrator.execute()
       .then((finalHTML) => {
         console.log(`✅ Workflow ${workflowId} completed successfully`);
-        // Keep workflow in memory for a while to allow status checks
-        setTimeout(() => {
-          activeWorkflows.delete(workflowId);
-          console.log(`🗑️ Cleaned up workflow ${workflowId}`);
-        }, 10 * 60 * 1000); // Keep for 10 minutes
+        // Update metadata to prevent immediate cleanup
+        const metadata = workflowMetadata.get(workflowId);
+        if (metadata) {
+          metadata.lastAccessed = Date.now();
+        }
       })
       .catch((error) => {
         console.error(`❌ Workflow ${workflowId} failed:`, error);
         // Keep workflow in memory to show error status
-        setTimeout(() => {
-          activeWorkflows.delete(workflowId);
-          console.log(`🗑️ Cleaned up failed workflow ${workflowId}`);
-        }, 10 * 60 * 1000);
+        const metadata = workflowMetadata.get(workflowId);
+        if (metadata) {
+          metadata.lastAccessed = Date.now();
+        }
       });
 
     return NextResponse.json({
@@ -82,6 +111,9 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     console.log('📊 Received status request');
+    
+    // Clean up old workflows
+    cleanupOldWorkflows();
     
     const searchParams = request.nextUrl.searchParams;
     const workflowId = searchParams.get('workflowId');
@@ -108,6 +140,12 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`✅ Found workflow ${workflowId}`);
+
+    // Update last accessed time
+    const metadata = workflowMetadata.get(workflowId);
+    if (metadata) {
+      metadata.lastAccessed = Date.now();
+    }
 
     const stateManager = orchestrator.getStateManager();
     const state = stateManager.getState();

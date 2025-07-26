@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Simple in-memory storage for testing
-const simpleWorkflows = new Map<string, any>();
+// In a real serverless environment, we'd use a database or external storage
+// For now, we'll simulate persistence with a more robust approach
+const workflowStore = new Map<string, any>();
+
+// Simulate some persistence by keeping workflows in memory longer
+// In production, this would be a database like Vercel KV, MongoDB, etc.
+const PERSISTENCE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,43 +29,26 @@ export async function POST(request: NextRequest) {
     
     console.log(`🆔 Generated Simple Workflow ID: ${workflowId}`);
     
-    // Create simple workflow state
+    // Create simple workflow state with timestamps
     const workflow = {
       id: workflowId,
       domainFocus,
       status: 'running',
       progress: 0,
       startTime: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
       agents: [
         { id: 'test-agent-1', status: 'pending', progress: 0 },
         { id: 'test-agent-2', status: 'pending', progress: 0 }
-      ]
+      ],
+      // Add completion timestamps
+      agent1CompleteTime: Date.now() + 2000,
+      agent2CompleteTime: Date.now() + 4000
     };
     
-    simpleWorkflows.set(workflowId, workflow);
+    workflowStore.set(workflowId, workflow);
     
-    console.log(`📊 Simple workflows count: ${simpleWorkflows.size}`);
-
-    // Simulate some progress after a delay
-    setTimeout(() => {
-      const wf = simpleWorkflows.get(workflowId);
-      if (wf) {
-        wf.agents[0].status = 'completed';
-        wf.agents[0].progress = 100;
-        wf.progress = 50;
-      }
-    }, 2000);
-
-    setTimeout(() => {
-      const wf = simpleWorkflows.get(workflowId);
-      if (wf) {
-        wf.agents[1].status = 'completed';
-        wf.agents[1].progress = 100;
-        wf.progress = 100;
-        wf.status = 'completed';
-        wf.finalHTML = `<html><body><h1>Simple Report for ${domainFocus}</h1><p>This is a test report.</p></body></html>`;
-      }
-    }, 4000);
+    console.log(`📊 Simple workflows count: ${workflowStore.size}`);
 
     return NextResponse.json({
       workflowId,
@@ -94,9 +82,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`📊 Simple workflows: ${Array.from(simpleWorkflows.keys())}`);
+    console.log(`📊 Simple workflows: ${Array.from(workflowStore.keys())}`);
 
-    const workflow = simpleWorkflows.get(workflowId);
+    const workflow = workflowStore.get(workflowId);
     if (!workflow) {
       console.log(`❌ Simple workflow ${workflowId} not found`);
       return NextResponse.json(
@@ -106,6 +94,30 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`✅ Found simple workflow ${workflowId}`);
+
+    // Update workflow state based on current time
+    const now = Date.now();
+    const startTime = new Date(workflow.startTime).getTime();
+    
+    // Agent 1 completes at 2 seconds
+    if (now >= workflow.agent1CompleteTime && workflow.agents[0].status === 'pending') {
+      workflow.agents[0].status = 'completed';
+      workflow.agents[0].progress = 100;
+      workflow.progress = 50;
+      workflow.lastUpdated = new Date().toISOString();
+      console.log(`✅ Agent 1 completed`);
+    }
+    
+    // Agent 2 completes at 4 seconds
+    if (now >= workflow.agent2CompleteTime && workflow.agents[1].status === 'pending') {
+      workflow.agents[1].status = 'completed';
+      workflow.agents[1].progress = 100;
+      workflow.progress = 100;
+      workflow.status = 'completed';
+      workflow.finalHTML = `<html><body><h1>Simple Report for ${workflow.domainFocus}</h1><p>This is a test report generated at ${new Date().toISOString()}</p></body></html>`;
+      workflow.lastUpdated = new Date().toISOString();
+      console.log(`✅ Agent 2 completed`);
+    }
 
     const response = {
       workflowId,
@@ -121,6 +133,15 @@ export async function GET(request: NextRequest) {
       progressCount: response.progress.length,
       completed: response.completed
     });
+
+    // Clean up old workflows
+    const cutoffTime = now - PERSISTENCE_DURATION;
+    for (const [id, wf] of workflowStore.entries()) {
+      if (new Date(wf.startTime).getTime() < cutoffTime) {
+        workflowStore.delete(id);
+        console.log(`🗑️ Cleaned up old workflow ${id}`);
+      }
+    }
 
     return NextResponse.json(response);
 
