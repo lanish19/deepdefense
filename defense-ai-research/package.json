@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verify": "node verify-deployment.js",
+    "deploy:check": "npm run verify && npm run build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
