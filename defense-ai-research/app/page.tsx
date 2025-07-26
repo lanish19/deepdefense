@@ -41,8 +41,8 @@ export default function ResearchApp() {
         formData.append('startupFirmsFile', startupFirmsFile);
       }
 
-      // Start the research workflow
-      const response = await fetch('/api/research', {
+      // Start the research workflow (using simple API for testing)
+      const response = await fetch('/api/research/simple', {
         method: 'POST',
         body: formData,
       });
@@ -65,7 +65,7 @@ export default function ResearchApp() {
 
   const pollProgress = async (id: string) => {
     try {
-      const response = await fetch(`/api/research?workflowId=${id}`);
+      const response = await fetch(`/api/research/simple?workflowId=${id}`);
       
       if (!response.ok) {
         throw new Error('Failed to get workflow status');
@@ -133,6 +133,7 @@ export default function ResearchApp() {
           <p className="text-lg text-gray-600">
             Multi-Agent AI Research for Defense/National Security Domains
           </p>
+          <p className="text-sm text-blue-600 mt-2">🔧 Using Simple API for Testing</p>
         </div>
 
         {/* Main Form */}
@@ -226,7 +227,7 @@ export default function ResearchApp() {
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <span className="text-lg">{getStatusIcon(agent.status)}</span>
-                    <span className="font-medium">{agent.agentId}</span>
+                    <span className="font-medium">{(agent as any).agentId || (agent as any).id}</span>
                   </div>
                   <span className={`text-sm font-medium ${getStatusColor(agent.status)}`}>
                     {agent.status}
