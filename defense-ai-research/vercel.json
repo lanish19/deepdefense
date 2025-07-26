@@ -1,4 +1,7 @@
 {
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "functions": {
     "app/api/research/route.ts": {
       "maxDuration": 300
@@ -6,10 +9,5 @@
     "app/api/research/status/route.ts": {
       "maxDuration": 300
     }
-  },
-  "env": {
-    "GEMINI_API_KEY": "@gemini-api-key",
-    "FIRECRAWL_KEY": "@firecrawl-key"
-  },
-  "regions": ["iad1"]
+  }
 } 
