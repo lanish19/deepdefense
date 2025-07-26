@@ -85,6 +85,9 @@ GEMINI_OUTPUT_COST_PER_MILLION=0.40
 
 # Directory to persist workflow state
 WORKFLOW_DIR=/tmp/deepdefense-workflows
+# Optional Redis configuration for Vercel Storage
+UPSTASH_REDIS_REST_URL=your_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_redis_token
 ```
 
 ### Model Configuration
