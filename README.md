@@ -63,6 +63,7 @@ The main application is located in the `defense-ai-research/` directory. See the
    ```bash
    cp .env.local.example .env.local
    # Edit .env.local with your API keys
+   # Optionally set WORKFLOW_DIR to control where workflow state is saved
    ```
 
 4. **Run the development server**:

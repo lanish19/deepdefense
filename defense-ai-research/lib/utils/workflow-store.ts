@@ -1,8 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { WorkflowState } from '../../types/agents';
 
-const WORKFLOW_DIR = process.env.WORKFLOW_DIR || '.workflow-data';
+const WORKFLOW_DIR =
+  process.env.WORKFLOW_DIR || path.join(os.tmpdir(), 'workflow-data');
 
 function ensureDir() {
   if (!fs.existsSync(WORKFLOW_DIR)) {

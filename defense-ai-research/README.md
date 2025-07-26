@@ -82,6 +82,10 @@ GEMINI_TOKEN_LIMIT=4000000
 GEMINI_WINDOW_MS=60000
 GEMINI_INPUT_COST_PER_MILLION=0.10
 GEMINI_OUTPUT_COST_PER_MILLION=0.40
+
+# Workflow State Directory
+# Optional: where to store workflow progress on disk
+WORKFLOW_DIR=/tmp/workflow-data
 ```
 
 ### Model Configuration
