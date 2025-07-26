@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// In a real serverless environment, we'd use a database or external storage
-// For now, we'll simulate persistence with a more robust approach
-const workflowStore = new Map<string, any>();
+// Global variable that persists across function invocations within the same instance
+// This is a workaround for serverless limitations
+declare global {
+  var __workflowStore: Map<string, any> | undefined;
+}
 
-// Simulate some persistence by keeping workflows in memory longer
-// In production, this would be a database like Vercel KV, MongoDB, etc.
-const PERSISTENCE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Initialize global store if it doesn't exist
+if (!global.__workflowStore) {
+  global.__workflowStore = new Map<string, any>();
+}
+
+const workflowStore = global.__workflowStore;
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,8 +40,8 @@ export async function POST(request: NextRequest) {
       domainFocus,
       status: 'running',
       progress: 0,
-      startTime: new Date().toISOString(),
-      lastUpdated: new Date().toISOString(),
+      startTime: Date.now(),
+      lastUpdated: Date.now(),
       agents: [
         { id: 'test-agent-1', status: 'pending', progress: 0 },
         { id: 'test-agent-2', status: 'pending', progress: 0 }
@@ -48,7 +53,7 @@ export async function POST(request: NextRequest) {
     
     workflowStore.set(workflowId, workflow);
     
-    console.log(`📊 Simple workflows count: ${workflowStore.size}`);
+    console.log(`📊 Created workflow ${workflowId}, total workflows: ${workflowStore.size}`);
 
     return NextResponse.json({
       workflowId,
@@ -82,7 +87,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`📊 Simple workflows: ${Array.from(workflowStore.keys())}`);
+    console.log(`📊 Available workflows: ${Array.from(workflowStore.keys())}`);
 
     const workflow = workflowStore.get(workflowId);
     if (!workflow) {
@@ -97,14 +102,15 @@ export async function GET(request: NextRequest) {
 
     // Update workflow state based on current time
     const now = Date.now();
-    const startTime = new Date(workflow.startTime).getTime();
+    let updated = false;
     
     // Agent 1 completes at 2 seconds
     if (now >= workflow.agent1CompleteTime && workflow.agents[0].status === 'pending') {
       workflow.agents[0].status = 'completed';
       workflow.agents[0].progress = 100;
       workflow.progress = 50;
-      workflow.lastUpdated = new Date().toISOString();
+      workflow.lastUpdated = now;
+      updated = true;
       console.log(`✅ Agent 1 completed`);
     }
     
@@ -115,8 +121,18 @@ export async function GET(request: NextRequest) {
       workflow.progress = 100;
       workflow.status = 'completed';
       workflow.finalHTML = `<html><body><h1>Simple Report for ${workflow.domainFocus}</h1><p>This is a test report generated at ${new Date().toISOString()}</p></body></html>`;
-      workflow.lastUpdated = new Date().toISOString();
+      workflow.lastUpdated = now;
+      updated = true;
       console.log(`✅ Agent 2 completed`);
+    }
+
+    // Clean up old workflows (older than 5 minutes)
+    const cutoffTime = now - (5 * 60 * 1000);
+    for (const [id, wf] of workflowStore.entries()) {
+      if (wf.startTime < cutoffTime) {
+        workflowStore.delete(id);
+        console.log(`🗑️ Cleaned up old workflow ${id}`);
+      }
     }
 
     const response = {
@@ -131,17 +147,9 @@ export async function GET(request: NextRequest) {
       workflowId,
       overallProgress: response.overallProgress,
       progressCount: response.progress.length,
-      completed: response.completed
+      completed: response.completed,
+      totalWorkflows: workflowStore.size
     });
-
-    // Clean up old workflows
-    const cutoffTime = now - PERSISTENCE_DURATION;
-    for (const [id, wf] of workflowStore.entries()) {
-      if (new Date(wf.startTime).getTime() < cutoffTime) {
-        workflowStore.delete(id);
-        console.log(`🗑️ Cleaned up old workflow ${id}`);
-      }
-    }
 
     return NextResponse.json(response);
 
