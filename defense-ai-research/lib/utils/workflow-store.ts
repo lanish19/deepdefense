@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { WorkflowState } from '../../types/agents';
 
-const WORKFLOW_DIR = process.env.WORKFLOW_DIR || '.workflow-data';
+// Default to /tmp to ensure write access in serverless environments
+const WORKFLOW_DIR = process.env.WORKFLOW_DIR || '/tmp/deepdefense-workflows';
 
 function ensureDir() {
   if (!fs.existsSync(WORKFLOW_DIR)) {
