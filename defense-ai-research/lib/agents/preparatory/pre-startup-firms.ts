@@ -40,6 +40,20 @@ OUTPUT:
 
 As stated above, here are the firms and products to analyze: ${firmsData}`;
 
+    // Perform web searches to gather context
+    const searchQueries = [
+      `startup firms ${this.domainFocus} AI autonomous systems`,
+      `AI startups ${this.domainFocus} defense technology`,
+      `autonomous AI companies ${this.domainFocus} market analysis`,
+      `startup ecosystem ${this.domainFocus} artificial intelligence trends`
+    ];
+
+    console.log('🔍 Performing web searches for startup firms context...');
+    const searchResults = await this.performWebSearch(searchQueries);
+    const searchContext = searchResults.map(result => result.markdown || result.content || '').join('\n\n');
+
+    const enhancedPrompt = prompt + `\n\nWEB RESEARCH CONTEXT:\n${searchContext}\n\nUse this web research context to inform your analysis and recommendations.`;
+
     try {
       const result = await this.geminiClient.generateWithSchema<PreparatoryAgentOutput>(
         enhancedPrompt,
@@ -55,4 +69,4 @@ As stated above, here are the firms and products to analyze: ${firmsData}`;
       throw error;
     }
   }
-} 
+}
