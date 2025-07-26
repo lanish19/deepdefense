@@ -56,7 +56,7 @@ async function searchWithRetry(query: string, retryCount = 0): Promise<SearchRes
     console.log(`Rate limit status: ${remaining} searches remaining this minute (resets at ${resetTime.toLocaleTimeString()})`);
     
     const result = await firecrawl.search(query, {
-      timeout: 15000,
+      timeout: 30000,
       limit: 5,
       scrapeOptions: { formats: ['markdown'] },
     });

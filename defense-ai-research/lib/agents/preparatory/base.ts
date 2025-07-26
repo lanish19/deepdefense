@@ -27,7 +27,7 @@ export abstract class BasePreparatoryAgent {
       try {
         console.log(`🔍 Searching: ${query}`);
         const result = await this.firecrawl.search(query, {
-          timeout: 15000,
+          timeout: 30000,
           limit: 3,
           scrapeOptions: { formats: ['markdown'] },
         });

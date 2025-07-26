@@ -22,14 +22,16 @@ export async function parseStartupFirmsFile(file: File): Promise<StartupFirm[]> 
 }
 
 function parseCSV(text: string): StartupFirm[] {
+  // Detect delimiter (comma vs tab)
+  const delimiter = text.includes('\t') && !text.includes(',') ? '\t' : ',';
   const lines = text.split('\n').filter(line => line.trim());
   if (lines.length < 2) return [];
-  
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+  const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase());
   const firms: StartupFirm[] = [];
-  
+
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim());
+    const values = lines[i].split(delimiter).map(v => v.trim());
     const firm: StartupFirm = { name: '', description: '', products: [], website: '' };
     
     headers.forEach((header, index) => {
