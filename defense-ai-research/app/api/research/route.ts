@@ -2,13 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ResearchWorkflowOrchestrator } from '../../../lib/workflow/orchestrator';
 import { UserInput } from '../../../types/agents';
 
-// Store active workflows with better persistence
-const activeWorkflows = new Map<string, ResearchWorkflowOrchestrator>();
-const workflowMetadata = new Map<string, {
-  startTime: number;
-  lastAccessed: number;
-  domainFocus: string;
-}>();
+// Global variable that persists across function invocations within the same instance
+declare global {
+  var __activeWorkflows: Map<string, ResearchWorkflowOrchestrator> | undefined;
+  var __workflowMetadata: Map<string, {
+    startTime: number;
+    lastAccessed: number;
+    domainFocus: string;
+  }> | undefined;
+}
+
+// Initialize global stores if they don't exist
+if (!global.__activeWorkflows) {
+  global.__activeWorkflows = new Map<string, ResearchWorkflowOrchestrator>();
+}
+if (!global.__workflowMetadata) {
+  global.__workflowMetadata = new Map<string, {
+    startTime: number;
+    lastAccessed: number;
+    domainFocus: string;
+  }>();
+}
+
+const activeWorkflows = global.__activeWorkflows;
+const workflowMetadata = global.__workflowMetadata;
 
 // Clean up old workflows periodically
 const CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
@@ -128,7 +145,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`📊 Active workflows: ${Array.from(activeWorkflows.keys())}`);
+    console.log(`📊 Available workflows: ${Array.from(activeWorkflows.keys())}`);
 
     const orchestrator = activeWorkflows.get(workflowId);
     if (!orchestrator) {
@@ -162,7 +179,8 @@ export async function GET(request: NextRequest) {
       workflowId,
       overallProgress: response.overallProgress,
       progressCount: response.progress.length,
-      completed: response.completed
+      completed: response.completed,
+      totalWorkflows: activeWorkflows.size
     });
 
     return NextResponse.json(response);
