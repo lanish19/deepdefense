@@ -46,7 +46,7 @@ OUTPUT:
 
     try {
       const result = await this.geminiClient.generateWithSchema<PreparatoryAgentOutput>(
-        prompt,
+        enhancedPrompt,
         this.getPreparatorySchema(),
         this.getSystemInstruction(),
         'prep'

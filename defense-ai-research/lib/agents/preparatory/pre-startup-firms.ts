@@ -42,7 +42,7 @@ As stated above, here are the firms and products to analyze: ${firmsData}`;
 
     try {
       const result = await this.geminiClient.generateWithSchema<PreparatoryAgentOutput>(
-        prompt,
+        enhancedPrompt,
         this.getPreparatorySchema(),
         this.getSystemInstruction(),
         'prep'
