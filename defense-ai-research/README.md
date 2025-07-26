@@ -76,6 +76,10 @@ FIRECRAWL_SEARCH_LIMIT=5
 FIRECRAWL_SCRAPE_LIMIT=10
 FIRECRAWL_CONCURRENCY_LIMIT=1
 
+# Optional workflow state directory. Defaults to `/tmp/workflow-data` on
+# serverless deployments like Vercel.
+WORKFLOW_DIR=/tmp/workflow-data
+
 # Rate Limiting
 GEMINI_REQUEST_LIMIT=2000
 GEMINI_TOKEN_LIMIT=4000000
@@ -151,6 +155,7 @@ Company B,Maritime AI systems,Navigation AI;Port security,https://example.com
 2. Set environment variables in Vercel dashboard:
    - `GEMINI_API_KEY`
    - `FIRECRAWL_KEY`
+   - `WORKFLOW_DIR` (optional, defaults to `/tmp/workflow-data`)
 3. Deploy automatically with each push
 
 ### Manual Build

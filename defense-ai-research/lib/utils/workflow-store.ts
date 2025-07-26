@@ -2,7 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import { WorkflowState } from '../../types/agents';
 
-const WORKFLOW_DIR = process.env.WORKFLOW_DIR || '.workflow-data';
+// Vercel's serverless functions have a read-only filesystem except for `/tmp`.
+// Use that location by default so workflow state can be persisted without errors
+// when no `WORKFLOW_DIR` is provided via environment variables.
+const WORKFLOW_DIR = process.env.WORKFLOW_DIR || '/tmp/workflow-data';
 
 function ensureDir() {
   if (!fs.existsSync(WORKFLOW_DIR)) {
