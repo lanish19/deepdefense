@@ -146,10 +146,22 @@ export class ResearchWorkflowOrchestrator {
     }
 
     // Store results (only successful ones)
+    const prepMap: Record<string, string> = {
+      'pre-policy': 'policy',
+      'pre-primes': 'primes',
+      'pre-startup-vc': 'startupVC',
+      'pre-startup-firms': 'startupFirms',
+      'pre-academia': 'academia',
+    };
+
     results.forEach(({ id, result }) => {
       if (result !== null) {
-        const agentType = id.replace('pre-', '');
-        this.stateManager.setPreparatoryResult(agentType, result);
+        const agentType = prepMap[id];
+        if (agentType) {
+          this.stateManager.setPreparatoryResult(agentType, result);
+        } else {
+          console.warn(`Unknown preparatory agent id: ${id}`);
+        }
       }
     });
 
@@ -261,10 +273,22 @@ export class ResearchWorkflowOrchestrator {
     }
 
     // Store results (only successful ones)
+    const researchMap: Record<string, string> = {
+      'policy-research': 'policy',
+      'primes-research': 'primes',
+      'startup-vc-research': 'startupVC',
+      'startup-firms-research': 'startupFirms',
+      'academic-research': 'academic',
+    };
+
     results.forEach(({ id, result }) => {
       if (result !== null) {
-        const agentType = id.replace('-research', '').replace('-', '');
-        this.stateManager.setResearchResult(agentType, result);
+        const agentType = researchMap[id];
+        if (agentType) {
+          this.stateManager.setResearchResult(agentType, result);
+        } else {
+          console.warn(`Unknown research agent id: ${id}`);
+        }
       }
     });
 
