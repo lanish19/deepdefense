@@ -1,0 +1,35 @@
+{
+  "name": "defense-ai-research",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@mendable/firecrawl-js": "^1.29.2",
+    "@types/lodash-es": "^4.17.12",
+    "ai": "^4.3.19",
+    "js-tiktoken": "^1.0.20",
+    "lodash-es": "^4.17.21",
+    "next": "15.4.4",
+    "p-limit": "^6.2.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
