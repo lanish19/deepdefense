@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     
     // Create and store workflow orchestrator
     const orchestrator = new ResearchWorkflowOrchestrator(workflowId, userInput);
-    saveWorkflowState(workflowId, orchestrator.getStateManager().getState());
+    await saveWorkflowState(workflowId, orchestrator.getStateManager().getState());
     activeWorkflows.set(workflowId, orchestrator);
     
     // Store metadata for cleanup
@@ -102,7 +102,9 @@ export async function POST(request: NextRequest) {
         if (metadata) {
           metadata.lastAccessed = Date.now();
         }
-        saveWorkflowState(workflowId, orchestrator.getStateManager().getState());
+        saveWorkflowState(workflowId, orchestrator.getStateManager().getState()).catch(err =>
+          console.error(`Failed to persist workflow ${workflowId}:`, err)
+        );
       })
       .catch((error) => {
         console.error(`❌ Workflow ${workflowId} failed:`, error);
@@ -111,7 +113,9 @@ export async function POST(request: NextRequest) {
         if (metadata) {
           metadata.lastAccessed = Date.now();
         }
-        saveWorkflowState(workflowId, orchestrator.getStateManager().getState());
+        saveWorkflowState(workflowId, orchestrator.getStateManager().getState()).catch(err =>
+          console.error(`Failed to persist workflow ${workflowId}:`, err)
+        );
       });
 
     return NextResponse.json({
@@ -154,7 +158,7 @@ export async function GET(request: NextRequest) {
     const orchestrator = activeWorkflows.get(workflowId);
     if (!orchestrator) {
       console.log(`⚠️ Workflow ${workflowId} not found in memory, checking disk`);
-      const saved = loadWorkflowState(workflowId);
+      const saved = await loadWorkflowState(workflowId);
       if (saved) {
         console.log(`✅ Found saved workflow ${workflowId}`);
         const overall = saved.progress.length > 0

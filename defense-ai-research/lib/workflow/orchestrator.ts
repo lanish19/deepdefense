@@ -31,9 +31,13 @@ export class ResearchWorkflowOrchestrator {
     this.stateManager = new WorkflowStateManager({ userInput });
     // Persist state on every update
     this.stateManager.subscribeToAll(() => {
-      saveWorkflowState(this.workflowId, this.stateManager.getState());
+      saveWorkflowState(this.workflowId, this.stateManager.getState()).catch(err =>
+        console.error('Failed to persist workflow state:', err)
+      );
     });
-    saveWorkflowState(this.workflowId, this.stateManager.getState());
+    saveWorkflowState(this.workflowId, this.stateManager.getState()).catch(err =>
+      console.error('Failed to persist workflow state:', err)
+    );
   }
 
   async execute(): Promise<string> {
