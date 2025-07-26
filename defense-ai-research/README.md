@@ -82,6 +82,9 @@ GEMINI_TOKEN_LIMIT=4000000
 GEMINI_WINDOW_MS=60000
 GEMINI_INPUT_COST_PER_MILLION=0.10
 GEMINI_OUTPUT_COST_PER_MILLION=0.40
+
+# Directory to persist workflow state
+WORKFLOW_DIR=/tmp/deepdefense-workflows
 ```
 
 ### Model Configuration

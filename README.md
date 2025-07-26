@@ -63,6 +63,9 @@ The main application is located in the `defense-ai-research/` directory. See the
    ```bash
    cp .env.local.example .env.local
    # Edit .env.local with your API keys
+   # On serverless platforms you must also set WORKFLOW_DIR to a writable path
+   # For example on Vercel use:
+   #   WORKFLOW_DIR=/tmp/deepdefense-workflows
    ```
 
 4. **Run the development server**:
