@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResearchWorkflowOrchestrator } from '../../../lib/workflow/orchestrator';
 import { UserInput } from '../../../types/agents';
+import { saveWorkflowState, loadWorkflowState } from '../../../lib/utils/workflow-store';
 
 // Global variable that persists across function invocations within the same instance
 declare global {
@@ -79,7 +80,8 @@ export async function POST(request: NextRequest) {
     console.log(`🆔 Generated Workflow ID: ${workflowId}`);
     
     // Create and store workflow orchestrator
-    const orchestrator = new ResearchWorkflowOrchestrator(userInput);
+    const orchestrator = new ResearchWorkflowOrchestrator(workflowId, userInput);
+    saveWorkflowState(workflowId, orchestrator.getStateManager().getState());
     activeWorkflows.set(workflowId, orchestrator);
     
     // Store metadata for cleanup
@@ -100,6 +102,7 @@ export async function POST(request: NextRequest) {
         if (metadata) {
           metadata.lastAccessed = Date.now();
         }
+        saveWorkflowState(workflowId, orchestrator.getStateManager().getState());
       })
       .catch((error) => {
         console.error(`❌ Workflow ${workflowId} failed:`, error);
@@ -108,6 +111,7 @@ export async function POST(request: NextRequest) {
         if (metadata) {
           metadata.lastAccessed = Date.now();
         }
+        saveWorkflowState(workflowId, orchestrator.getStateManager().getState());
       });
 
     return NextResponse.json({
@@ -149,6 +153,21 @@ export async function GET(request: NextRequest) {
 
     const orchestrator = activeWorkflows.get(workflowId);
     if (!orchestrator) {
+      console.log(`⚠️ Workflow ${workflowId} not found in memory, checking disk`);
+      const saved = loadWorkflowState(workflowId);
+      if (saved) {
+        console.log(`✅ Found saved workflow ${workflowId}`);
+        const overall = saved.progress.length > 0
+          ? Math.round(saved.progress.reduce((sum, p) => sum + p.progress, 0) / saved.progress.length)
+          : 0;
+        return NextResponse.json({
+          workflowId,
+          overallProgress: overall,
+          progress: saved.progress,
+          finalHTML: saved.finalHTML,
+          completed: !!saved.finalHTML
+        });
+      }
       console.log(`❌ Workflow ${workflowId} not found`);
       return NextResponse.json(
         { error: 'Workflow not found' },
