@@ -66,9 +66,6 @@ The main application is located in the `defense-ai-research/` directory. See the
    # On serverless platforms you must also set WORKFLOW_DIR to a writable path
    # For example on Vercel use:
    #   WORKFLOW_DIR=/tmp/deepdefense-workflows
-   # If using Vercel Redis (e.g. "redis-yellow-tree"), set:
-   #   UPSTASH_REDIS_REST_URL=<your redis url>
-   #   UPSTASH_REDIS_REST_TOKEN=<your redis token>
    ```
 
 4. **Run the development server**:
